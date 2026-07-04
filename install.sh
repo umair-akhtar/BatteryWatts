@@ -17,13 +17,26 @@ echo "==> Installing $APP_NAME"
 
 mkdir -p "$INSTALL_DIR" "$HOME/Library/LaunchAgents"
 
-# Get the app: prefer a local build (running from a clone), else download the latest release.
+# Get the app: prefer a local build ONLY when genuinely run from a checkout, else
+# download the latest release.
+#
+# Security: when invoked the documented way (`curl -fsSL .../install.sh | bash`),
+# BASH_SOURCE is empty and dirname resolves to the *current working directory*.
+# We must NOT treat a "BatteryWatts.app" sitting in the cwd as a trusted local
+# build — an attacker could plant one in a shared/world-writable dir and have it
+# installed, re-signed, and persisted via the LaunchAgent. So the local-build path
+# is taken only when this script exists as a real file on disk next to the app.
 TMP="$(mktemp -d)"
 trap 'rm -rf "$TMP"' EXIT
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" 2>/dev/null && pwd || true)"
 
-if [ -n "$SCRIPT_DIR" ] && [ -d "$SCRIPT_DIR/$APP" ]; then
-    echo "==> Using locally built $APP"
+SCRIPT_SRC="${BASH_SOURCE[0]:-}"
+SCRIPT_DIR=""
+if [ -n "$SCRIPT_SRC" ] && [ -f "$SCRIPT_SRC" ]; then
+    SCRIPT_DIR="$(cd "$(dirname "$SCRIPT_SRC")" && pwd)"
+fi
+
+if [ -n "$SCRIPT_DIR" ] && [ -f "$SCRIPT_DIR/install.sh" ] && [ -d "$SCRIPT_DIR/$APP" ]; then
+    echo "==> Using locally built app at $SCRIPT_DIR/$APP"
     SRC_APP="$SCRIPT_DIR/$APP"
 else
     URL="https://github.com/$REPO/releases/latest/download/$APP_NAME.zip"
