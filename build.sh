@@ -5,12 +5,17 @@ cd "$(dirname "$0")"
 APP="BatteryWatts.app"
 CONTENTS="$APP/Contents"
 MACOS="$CONTENTS/MacOS"
+DEPLOY_TARGET="12.0"
 
-rm -rf "$APP"
-mkdir -p "$MACOS"
+rm -rf "$APP" build
+mkdir -p "$MACOS" build
 
-echo "Compiling..."
-swiftc src/main.swift -o "$MACOS/BatteryWatts"
+echo "Compiling universal binary (arm64 + x86_64)..."
+swiftc src/main.swift -target arm64-apple-macosx$DEPLOY_TARGET  -o build/BatteryWatts-arm64
+swiftc src/main.swift -target x86_64-apple-macosx$DEPLOY_TARGET -o build/BatteryWatts-x86_64
+lipo -create -output "$MACOS/BatteryWatts" build/BatteryWatts-arm64 build/BatteryWatts-x86_64
+rm -rf build
+echo "Architectures: $(lipo -archs "$MACOS/BatteryWatts")"
 
 cat > "$CONTENTS/Info.plist" <<'PLIST'
 <?xml version="1.0" encoding="UTF-8"?>
@@ -31,6 +36,6 @@ cat > "$CONTENTS/Info.plist" <<'PLIST'
 PLIST
 
 # Ad-hoc sign so macOS is happy launching it locally
-codesign --force --deep --sign - "$APP" 2>/dev/null || true
+codesign --force --sign - "$APP" 2>/dev/null || true
 
 echo "Built $APP"

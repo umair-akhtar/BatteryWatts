@@ -5,3 +5,6 @@ BatteryWatts.app/
 
 # macOS
 .DS_Store
+
+# Release artifact
+BatteryWatts.zip
