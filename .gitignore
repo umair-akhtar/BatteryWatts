@@ -1,0 +1,7 @@
+# Build output
+BatteryWatts.app/
+*.o
+*.swiftmodule
+
+# macOS
+.DS_Store
