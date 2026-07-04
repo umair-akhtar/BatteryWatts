@@ -25,7 +25,7 @@ macOS tells you your battery percentage — but not **how fast it's actually cha
 | Field | Example | Meaning |
 |:-----:|:-------:|:--------|
 | ⚡ Charging watts | `29` | Power flowing **into the battery** right now (voltage × amperage) |
-| Charger watts | `100` | Your charger's **maximum** wattage rating |
+| Charger watts | `100` | Your charger's wattage — the peak it has delivered this session |
 | Time to full | `3:07` | Estimated time remaining until 100% |
 | Battery % | `14%` | Current charge level |
 
@@ -34,6 +34,8 @@ macOS tells you your battery percentage — but not **how fast it's actually cha
 When you unplug, it collapses to a clean `🔋 14%`. Click the icon any time for the same details spelled out in a dropdown.
 
 > 💡 **Why the charging watts are lower than your charger's rating:** a MacBook only pulls its charger's full wattage when the battery is low *and* the system is under load. As the battery fills, charging naturally tapers — so seeing `29/100W` at 14% is completely normal. Watch it climb, then ease off as it tops up.
+>
+> 💡 **About the charger number:** macOS doesn't expose a static "nameplate" wattage — it only reports the *currently negotiated* USB-C Power Delivery wattage, which tapers as the battery fills (a 100 W charger negotiates 100 W at a low battery but only ~30 W near full; Apple's own System Information shows the same tapering value). BatteryWatts therefore **peak-holds** the highest wattage seen since you plugged in, which reflects your charger's true capability. If you plug in when the battery is already nearly full, it may briefly show a lower number until the charger ramps up — it "learns" the full figure the first time real power is drawn. The dropdown also shows the live "Drawing now" figure for full transparency.
 
 ---
 

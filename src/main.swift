@@ -72,7 +72,17 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     var statusItem: NSStatusItem!
     var timer: Timer!
 
+    // macOS reports the *currently negotiated* USB-C Power Delivery wattage, which
+    // tapers as the battery fills (e.g. a 100 W charger negotiates 20 V × 5 A = 100 W
+    // when the battery is low, but drops to 20 V × 1.5 A = 30 W near full). There is no
+    // static "nameplate" the OS exposes. So we peak-hold the highest wattage seen this
+    // plug-in session to represent the charger's actual capability, persist it so an
+    // app restart while still plugged doesn't lose it, and reset on unplug.
+    let defaults = UserDefaults.standard
+    var peakAdapterWatts = 0
+
     func applicationDidFinishLaunching(_ notification: Notification) {
+        peakAdapterWatts = defaults.integer(forKey: "peakAdapterWatts")
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         if let button = statusItem.button {
             button.font = NSFont.monospacedDigitSystemFont(ofSize: 12, weight: .regular)
@@ -86,17 +96,28 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     func refresh() {
         let b = readBattery()
 
+        // Track the charger's peak capability for this plug-in session.
+        if b.pluggedIn {
+            if b.adapterWatts > peakAdapterWatts {
+                peakAdapterWatts = b.adapterWatts
+                defaults.set(peakAdapterWatts, forKey: "peakAdapterWatts")
+            }
+        } else if peakAdapterWatts != 0 {
+            peakAdapterWatts = 0
+            defaults.removeObject(forKey: "peakAdapterWatts")
+        }
+
         // Status-bar title: charging watts · charger watts · time to full · battery %
         let title: String
         let chargeW = String(format: "%.0f", b.chargeWatts)
-        let adapterW = b.adapterWatts > 0 ? "\(b.adapterWatts)" : "—"
+        let chargerW = peakAdapterWatts > 0 ? "\(peakAdapterWatts)" : "—"
         if !b.pluggedIn {
             title = "🔋 \(b.percent)%"
         } else if b.fullyCharged || (b.percent >= 100) {
-            title = "⚡ \(chargeW)/\(adapterW)W · Full · \(b.percent)%"
+            title = "⚡ \(chargeW)/\(chargerW)W · Full · \(b.percent)%"
         } else {
             let eta = b.minutesToFull >= 0 ? formatTime(b.minutesToFull) : "--:--"
-            title = "⚡ \(chargeW)/\(adapterW)W · \(eta) · \(b.percent)%"
+            title = "⚡ \(chargeW)/\(chargerW)W · \(eta) · \(b.percent)%"
         }
         statusItem.button?.title = title
 
@@ -106,12 +127,17 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             if b.fullyCharged {
                 menu.addItem(makeInfo("Status: Fully charged"))
             } else if b.chargeWatts >= 0.5 {
-                menu.addItem(makeInfo(String(format: "Charging at: %.1f W", b.chargeWatts)))
+                menu.addItem(makeInfo(String(format: "Charging battery at: %.1f W", b.chargeWatts)))
             } else {
                 menu.addItem(makeInfo("Status: Plugged in (not charging)"))
             }
-            if b.adapterWatts > 0 {
-                menu.addItem(makeInfo("Adapter: \(b.adapterWatts) W max"))
+            if peakAdapterWatts > 0 {
+                menu.addItem(makeInfo("Charger: \(peakAdapterWatts) W"))
+            }
+            // The live negotiated draw differs from the charger's peak once charging
+            // tapers near full — show it so the numbers are transparent.
+            if b.adapterWatts > 0 && b.adapterWatts < peakAdapterWatts {
+                menu.addItem(makeInfo("Drawing now: \(b.adapterWatts) W (tapers as battery fills)"))
             }
             if b.minutesToFull >= 0 && !b.fullyCharged {
                 menu.addItem(makeInfo("Time until full: \(formatTime(b.minutesToFull))"))
