@@ -31,7 +31,7 @@ macOS tells you your battery percentage — but not **how fast it's actually cha
 
 </div>
 
-When you unplug, it collapses to a clean `🔋 14%`. Click the icon any time for the same details spelled out in a dropdown.
+When you unplug, it switches to `🔋 82% · 3:29 left` — battery level plus the estimated time until empty. Click the icon any time for the same details spelled out in a dropdown.
 
 > 💡 **Why the charging watts are lower than your charger's rating:** a MacBook only pulls its charger's full wattage when the battery is low *and* the system is under load. As the battery fills, charging naturally tapers — so seeing `29/100W` at 14% is completely normal. Watch it climb, then ease off as it tops up.
 >
@@ -42,7 +42,7 @@ When you unplug, it collapses to a clean `🔋 14%`. Click the icon any time for
 ## ✨ Features
 
 - **Live charging power** in watts — the number Apple hides from you.
-- **Time until full**, using macOS's own estimate (matches `pmset`).
+- **Time until full** when charging, **and time remaining when on battery**, using macOS's own estimates (match `pmset`).
 - **Charger wattage** so you can tell a 100W brick from a 30W one at a glance.
 - **Universal binary** — runs natively on **Apple Silicon and Intel** Macs, no Rosetta.
 - **Featherweight** — a single ~100KB binary, no frameworks, no background daemons beyond one login item.

@@ -12,6 +12,7 @@ struct BatteryInfo {
     var chargeWatts: Double = 0      // power flowing into the battery (V * I)
     var adapterWatts: Int = 0        // adapter's max rating
     var minutesToFull: Int = -1      // -1 = unknown / not charging
+    var minutesToEmpty: Int = -1     // -1 = unknown / on AC power
 }
 
 func readBattery() -> BatteryInfo {
@@ -55,6 +56,11 @@ func readBattery() -> BatteryInfo {
     // Time to full (minutes). 65535 means "still calculating".
     if let t = props["AvgTimeToFull"] as? Int, t >= 0, t < 65535 {
         info.minutesToFull = t
+    }
+
+    // Time to empty on battery (minutes). 65535 means "still calculating".
+    if let t = props["AvgTimeToEmpty"] as? Int, t >= 0, t < 65535 {
+        info.minutesToEmpty = t
     }
 
     return info
@@ -112,7 +118,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         let chargeW = String(format: "%.0f", b.chargeWatts)
         let chargerW = peakAdapterWatts > 0 ? "\(peakAdapterWatts)" : "—"
         if !b.pluggedIn {
-            title = "🔋 \(b.percent)%"
+            if b.minutesToEmpty >= 0 {
+                title = "🔋 \(b.percent)% · \(formatTime(b.minutesToEmpty)) left"
+            } else {
+                title = "🔋 \(b.percent)%"
+            }
         } else if b.fullyCharged || (b.percent >= 100) {
             title = "⚡ \(chargeW)/\(chargerW)W · Full · \(b.percent)%"
         } else {
@@ -144,6 +154,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             }
         } else {
             menu.addItem(makeInfo("On battery power"))
+            if b.minutesToEmpty >= 0 {
+                menu.addItem(makeInfo("Time remaining: \(formatTime(b.minutesToEmpty))"))
+            } else {
+                menu.addItem(makeInfo("Time remaining: calculating…"))
+            }
         }
         menu.addItem(makeInfo("Battery: \(b.percent)%"))
         menu.addItem(NSMenuItem.separator())
